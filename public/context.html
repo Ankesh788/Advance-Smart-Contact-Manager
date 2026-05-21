@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommTrace — Contacts</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --neon:#00f5ff; --neon2:#ff00ff; --neon3:#00ff88; --bg:#020b18; --panel:rgba(5,18,38,0.85); --border:rgba(0,245,255,0.15); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:#c8eeff; min-height:100vh; }
+  #stars { position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .star { position:absolute; border-radius:50%; background:#fff; animation:twinkle var(--d) infinite alternate; }
+  @keyframes twinkle { from{opacity:0.05} to{opacity:0.7} }
+  .grid-bg { position:fixed; inset:0; z-index:0; pointer-events:none; background-image:linear-gradient(rgba(0,245,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.025) 1px,transparent 1px); background-size:50px 50px; }
+  .orb { position:fixed; border-radius:50%; filter:blur(100px); z-index:0; pointer-events:none; }
+  .orb1 { width:400px;height:400px; background:rgba(0,245,255,0.05); top:-80px; left:-80px; }
+  .orb2 { width:350px;height:350px; background:rgba(255,0,255,0.04); bottom:-80px; right:-60px; }
+  .scan-line { position:fixed; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--neon),transparent); opacity:0.2; z-index:20; pointer-events:none; animation:scan 6s linear infinite; }
+  @keyframes scan { from{top:-1px} to{top:100vh} }
+
+  nav { position:sticky; top:0; z-index:100; background:rgba(2,11,24,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .nav-brand { font-family:'Orbitron',monospace; font-weight:900; font-size:1.3rem; letter-spacing:3px; background:linear-gradient(135deg,var(--neon),var(--neon2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-links a { padding:8px 14px; border-radius:8px; text-decoration:none; font-family:'Orbitron',monospace; font-size:0.68rem; letter-spacing:1px; color:rgba(255,255,255,0.45); transition:all 0.2s; }
+  .nav-links a:hover { color:var(--neon); background:rgba(0,245,255,0.08); }
+  .nav-links a.active { color:var(--neon); background:rgba(0,245,255,0.1); border:1px solid rgba(0,245,255,0.2); }
+  .avatar { width:38px;height:38px; border-radius:50%; background:linear-gradient(135deg,var(--neon),var(--neon2)); display:flex; align-items:center; justify-content:center; font-family:'Orbitron',monospace; font-weight:700; color:#000; animation:avatarPulse 3s infinite alternate; }
+  @keyframes avatarPulse { from{box-shadow:0 0 10px rgba(0,245,255,0.3)} to{box-shadow:0 0 25px rgba(255,0,255,0.5)} }
+
+  .main { position:relative; z-index:10; padding:40px 32px; max-width:1000px; margin:0 auto; }
+  .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+  .page-title { font-family:'Orbitron',monospace; font-size:2rem; font-weight:900; background:linear-gradient(135deg,#fff,var(--neon)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .btn-add { padding:12px 24px; background:linear-gradient(135deg,rgba(0,245,255,0.1),rgba(255,0,255,0.1)); border:1px solid var(--neon); border-radius:10px; color:var(--neon); font-family:'Orbitron',monospace; font-size:0.72rem; letter-spacing:2px; cursor:pointer; transition:all 0.3s; text-decoration:none; display:inline-block; }
+  .btn-add:hover { background:linear-gradient(135deg,var(--neon),var(--neon2)); color:#000; box-shadow:0 0 30px rgba(0,245,255,0.4); }
+
+  /* Search */
+  .search-bar { position:relative; margin-bottom:24px; }
+  .search-bar input { width:100%; padding:14px 18px 14px 48px; background:rgba(0,245,255,0.04); border:1px solid rgba(0,245,255,0.15); border-radius:12px; color:#e0f8ff; font-family:'Exo 2',sans-serif; font-size:0.95rem; outline:none; transition:all 0.3s; }
+  .search-bar input:focus { border-color:var(--neon); box-shadow:0 0 20px rgba(0,245,255,0.15); }
+  .search-bar input::placeholder { color:rgba(255,255,255,0.25); }
+  .search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:rgba(0,245,255,0.5); font-size:1rem; }
+
+  /* Contact grid */
+  .contacts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .contact-card {
+    background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:22px;
+    backdrop-filter:blur(16px); position:relative; overflow:hidden;
+    animation:cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; transition:all 0.3s;
+  }
+  .contact-card:hover { border-color:var(--neon); transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,245,255,0.15); }
+  .contact-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--neon),var(--neon2)); }
+  @keyframes cardIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+
+  .contact-avatar { width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,rgba(0,245,255,0.2),rgba(255,0,255,0.2)); border:2px solid rgba(0,245,255,0.3); display:flex; align-items:center; justify-content:center; font-family:'Orbitron',monospace; font-weight:700; color:var(--neon); font-size:1.2rem; margin-bottom:14px; }
+  .contact-name { font-size:1rem; font-weight:600; color:#e0f8ff; margin-bottom:6px; }
+  .contact-detail { font-size:0.78rem; color:rgba(255,255,255,0.4); margin-bottom:3px; display:flex; align-items:center; gap:6px; }
+  .contact-detail span:first-child { color:rgba(0,245,255,0.5); }
+  .contact-actions { display:flex; gap:8px; margin-top:14px; }
+  .btn-sm { padding:6px 14px; border-radius:6px; font-size:0.68rem; font-family:'Orbitron',monospace; cursor:pointer; border:1px solid; transition:all 0.2s; letter-spacing:1px; }
+  .btn-sm-neon { border-color:rgba(0,245,255,0.3); color:var(--neon); background:rgba(0,245,255,0.05); }
+  .btn-sm-neon:hover { background:var(--neon); color:#000; }
+  .btn-sm-red { border-color:rgba(255,50,50,0.3); color:#ff5555; background:rgba(255,50,50,0.05); }
+  .btn-sm-red:hover { background:#ff5555; color:#000; }
+
+  /* Empty state */
+  .empty-state { text-align:center; padding:80px 20px; }
+  .empty-icon { font-size:4rem; margin-bottom:16px; animation:float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .empty-text { font-family:'Orbitron',monospace; font-size:0.8rem; letter-spacing:2px; color:rgba(255,255,255,0.3); text-transform:uppercase; margin-bottom:8px; }
+  .empty-sub { font-size:0.78rem; color:rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="grid-bg"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="scan-line"></div>
+
+<nav>
+  <div class="nav-brand">CommTrace</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="addcontant.html">Add Contact</a>
+    <a href="context.html" class="active">Contacts</a>
+    <a href="profile.html">Profile</a>
+    <a href="about.html">About</a>
+    <a href="index.html">Logout</a>
+  </div>
+  <div class="avatar">V</div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title">My Contacts</div>
+    <a href="addcontant.html" class="btn-add">+ Add New Contact</a>
+  </div>
+
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Search contacts by name, phone or email..." id="searchInput" oninput="filterContacts()">
+  </div>
+
+  <div id="contactsContainer"></div>
+</div>
+
+<script>
+const starsEl=document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const s=document.createElement('div'); s.className='star';
+  const size=Math.random()*2+0.5;
+  s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${Math.random()*4+2}s;animation-delay:${Math.random()*5}s`;
+  starsEl.appendChild(s);
+}
+
+function getContacts(){ return JSON.parse(localStorage.getItem('ct_contacts')||'[]'); }
+function saveContacts(c){ localStorage.setItem('ct_contacts',JSON.stringify(c)); }
+
+function renderContacts(list){
+  const el=document.getElementById('contactsContainer');
+  if(!list.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">No contacts found</div><div class="empty-sub">Start by adding your first contact</div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="contacts-grid">${list.map((c,i)=>`
+    <div class="contact-card" style="animation-delay:${i*0.05}s">
+      <div class="contact-avatar">${c.name[0].toUpperCase()}</div>
+      <div class="contact-name">${c.name}</div>
+      <div class="contact-detail"><span>📞</span>${c.phone||'—'}</div>
+      <div class="contact-detail"><span>✉</span>${c.email||'—'}</div>
+      ${c.desc?`<div class="contact-detail" style="margin-top:6px;color:rgba(255,255,255,0.35)">${c.desc.slice(0,60)}${c.desc.length>60?'…':''}</div>`:''}
+      <div class="contact-actions">
+        <button class="btn-sm btn-sm-red" onclick="deleteContact(${c.id})">✕ Delete</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function filterContacts(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const all=getContacts();
+  renderContacts(q ? all.filter(c=>(c.name+c.phone+c.email).toLowerCase().includes(q)) : all);
+}
+function deleteContact(id){
+  if(!confirm('Delete this contact?')) return;
+  saveContacts(getContacts().filter(c=>c.id!==id));
+  filterContacts();
+}
+
+filterContacts();
+</script>
+</body>
+</html>
